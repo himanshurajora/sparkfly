@@ -1,18 +1,25 @@
 import Phaser from 'phaser'
-
 import HelloWorldScene from './scenes/HelloWorldScene'
+import TestScene from './scenes/TestScene'
 
 const config: Phaser.Types.Core.GameConfig = {
 	type: Phaser.AUTO,
-	width: 800,
-	height: 600,
+	scale: {
+		mode: Phaser.Scale.FIT,
+		parent: 'phaser-example',
+		autoCenter: Phaser.Scale.CENTER_BOTH,
+		width: 800,
+		height: 600
+	},
 	physics: {
 		default: 'arcade',
 		arcade: {
-			gravity: { y: 200 }
+			fps: 60,
+			gravity: { y: 0 }
 		}
 	},
-	scene: [HelloWorldScene]
+	scene: [TestScene]
 }
+
 
 export default new Phaser.Game(config)
