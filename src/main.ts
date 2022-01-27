@@ -3,7 +3,7 @@ import HelloWorldScene from './scenes/HelloWorldScene'
 import MainScene from './scenes/MainScene'
 
 const config: Phaser.Types.Core.GameConfig = {
-	type: Phaser.WEBGL,
+	type: Phaser.AUTO,
 	scale: {
 		mode: Phaser.Scale.FIT,
 		parent: 'phaser-example',

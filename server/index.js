@@ -7,17 +7,30 @@ var io = require('socket.io')(http, {
     }
 });
 
+const users = [];
 // The socket io server to handle events realted to my game sparkfly - spaceship fights
 io.on('connection', (socket) => {
+
+    // push the new user to the users array
+    users.push(socket.id);
     // Ran when a socket connected
     console.log("Net Connection: ", socket.id)
+    socket.broadcast.emit('newConnection', {
+        id: socket.id
+    })
     socket.on('hello', (data) => {
-        console.log(data)
+        // send id to that socket
+        socket.emit('id', {
+            id: socket.id,
+            users: users
+        })
     })
     // on space ship move
     socket.on('move', (data) => {
-        console.log(data)
-        socket.broadcast.emit('move', data)
+        socket.broadcast.emit('move', {
+            id: socket.id,
+            data: data
+        })
     })
     // on user disconnect
     socket.on('disconnect', () => {

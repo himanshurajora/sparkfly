@@ -8,10 +8,18 @@ export default class MainScene extends Phaser.Scene {
     private ship !: Phaser.Types.Physics.Arcade.ImageWithDynamicBody
     private bullets !: BulletsGroup
     private speedText !: Phaser.GameObjects.Text
-    private enemyShip !: EnemyShip
+    private enemyShip: EnemyShip | null = null
+    private enemyShipData: EnemyShipData = {
+        x: 0,
+        y: 0,
+        health: 100,
+        rotation: 0,
+        bullets: []
+    }
     private rotationSpeed = 200
     private socket !: Socket
     private health = 100
+    private mySocketId !: string
     constructor() {
         super("test-scene")
     }
@@ -38,11 +46,38 @@ export default class MainScene extends Phaser.Scene {
 
         // create cursor for keyboard input
         this.cursors = this.input.keyboard.createCursorKeys()
-        this.ship = this.physics.add.image(400, 300, 'ship')
+        var x = Math.floor(Math.random() * (this.game.canvas.width - 50))
+        var y = Math.floor(Math.random() * (this.game.canvas.height - 50))
+        
+        this.ship = this.physics.add.image(x, y, 'ship')
         // ship drag to reduce speed
         this.ship.setDrag(100)
         // MAX speed
         this.ship.setMaxVelocity(200)
+
+        // Handling Enemy Ship
+        // get my socket id
+        this.socket.on("id", (data) => {
+            this.mySocketId = data.id
+            data.users.forEach(user => {
+                if (user.id !== this.mySocketId) {
+                    this.enemyShip = new EnemyShip(this, { x: 100, y: 100, health: 100, rotation: 0, bullets: [] })
+                }
+            })
+
+        })
+
+        this.socket.on("newConnection", (data) => {
+            if (data.id !== this.mySocketId) {
+                this.enemyShip = new EnemyShip(this, { x: 100, y: 100, health: 100, rotation: 0, bullets: [] })
+            }
+        })
+
+        this.socket.on("move", (data) => {
+            if (data.id !== this.mySocketId) {
+                this.enemyShipData = data.data
+            }
+        })
 
         // velocity text
         this.speedText = this.add.text(16, 16, '', {
@@ -52,30 +87,28 @@ export default class MainScene extends Phaser.Scene {
 
         // create bullets group
         this.bullets = new BulletsGroup(this)
-        this.enemyShip = new EnemyShip(this, { x: 100, y: 100, rotation: 100 } as EnemyShipData)
-
         // make ship collide with enemy ship
-        this.physics.add.collider(this.ship, this.enemyShip, () => {
-            console.log("Collision");
-            if (this.enemyShip) {
-                this.enemyShip.health -= 20;
-                if (this.enemyShip.health <= 0) {
-                    this.enemyShip.destroy();
-                }
-            }
-        })
+        // this.physics.add.collider(this.ship, this.enemyShip, () => {
+        //     console.log("Collision");
+        //     if (this.enemyShip) {
+        //         this.enemyShip.health -= 20;
+        //         if (this.enemyShip.health <= 0) {
+        //             this.enemyShip.destroy();
+        //         }
+        //     }
+        // })
 
-        this.physics.add.overlap(this.enemyShip, this.bullets, (enemyShip, bullet) => {
-            console.log("Bullets Passthrough")
-            bullet.destroy()
-            console.log(this.enemyShip.health)
-            if (this.enemyShip) {
-                this.enemyShip.health -= 20;
-                if (this.enemyShip.health <= 0) {
-                    this.enemyShip.destroy();
-                }
-            }
-        })
+        // this.physics.add.overlap(this.enemyShip, this.bullets, (enemyShip, bullet) => {
+        //     console.log("Bullets Passthrough")
+        //     bullet.destroy()
+        //     console.log(this.enemyShip.health)
+        //     if (this.enemyShip) {
+        //         this.enemyShip.health -= 20;
+        //         if (this.enemyShip.health <= 0) {
+        //             this.enemyShip.destroy();
+        //         }
+        //     }
+        // })
     }
 
     fireBullets() {
@@ -83,24 +116,18 @@ export default class MainScene extends Phaser.Scene {
     }
 
     update(time: number, delta: number): void {
-        // move the enemy ship slowly
+
+        // Enemy Ship Handling
         if (this.enemyShip && this.enemyShip.body) {
-            this.enemyShip.setVelocity(10, 10)
-            this.enemyShip.setRotation(this.enemyShip.rotation + 0.01)
+            this.enemyShip.setPosition(this.enemyShipData.x, this.enemyShipData.y)
+            this.enemyShip.setRotation(this.enemyShipData.rotation)
         }
+
         // Ship Movement Control Section
         if (this.cursors.up.isDown) {
             // set ship-idle image to ship
             this.ship.setTexture('ship')
             this.physics.velocityFromRotation(this.ship.rotation, 300, this.ship.body.acceleration)
-            // send ship movement data to server
-            this.socket.emit("move", {
-                x: this.ship.x,
-                y: this.ship.y,
-                rotation: this.ship.rotation,
-                health: this.health
-                // bullets: this.bullets
-            })
         }
         else {
             this.ship.setTexture('ship-idle')
@@ -126,8 +153,13 @@ export default class MainScene extends Phaser.Scene {
         // update spped text
         this.speedText.setText(`Speed: ${this.ship.body.velocity.length()}`)
 
-        // send ship data 20 times per second
-
+        // send ship data 
+        this.socket.emit("move", {
+            x: this.ship.x,
+            y: this.ship.y,
+            rotation: this.ship.rotation,
+            health: this.health
+        })
     }
 
 
