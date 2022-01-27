@@ -1,9 +1,9 @@
 import Phaser from 'phaser'
 import HelloWorldScene from './scenes/HelloWorldScene'
-import TestScene from './scenes/TestScene'
+import MainScene from './scenes/MainScene'
 
 const config: Phaser.Types.Core.GameConfig = {
-	type: Phaser.AUTO,
+	type: Phaser.WEBGL,
 	scale: {
 		mode: Phaser.Scale.FIT,
 		parent: 'phaser-example',
@@ -18,7 +18,7 @@ const config: Phaser.Types.Core.GameConfig = {
 			gravity: { y: 0 }
 		}
 	},
-	scene: [TestScene]
+	scene: [MainScene]
 }
 
 
