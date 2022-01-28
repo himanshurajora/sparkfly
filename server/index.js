@@ -7,35 +7,49 @@ var io = require('socket.io')(http, {
     }
 });
 
-const users = [];
+const IShips = {
+    id: '',
+    data: {
+        x: '',
+        y: '',
+        rotation: '',
+        health: '',
+    }
+}
+
+const Ships = [];
 // The socket io server to handle events realted to my game sparkfly - spaceship fights
 io.on('connection', (socket) => {
+    console.log('a user connected');
 
-    // push the new user to the users array
-    users.push(socket.id);
-    // Ran when a socket connected
-    console.log("Net Connection: ", socket.id)
-    socket.broadcast.emit('newConnection', {
-        id: socket.id
-    })
-    socket.on('hello', (data) => {
-        // send id to that socket
-        socket.emit('id', {
-            id: socket.id,
-            users: users
-        })
-    })
-    // on space ship move
-    socket.on('move', (data) => {
-        socket.broadcast.emit('move', {
+    // socket enter event to handle the ship enter the game
+    // ship will provide it's initial data to the server and the server will return the ship's id
+    socket.on('enter', (data) => {
+        console.log('enter event', data);
+        const Ship = {
             id: socket.id,
             data: data
-        })
-    })
-    // on user disconnect
-    socket.on('disconnect', () => {
-        console.log('user disconnected');
+        }
+        Ships.push(Ship);
+        socket.emit('enter', Ship);
     });
+
+    // socket update event to handle the ship update
+    // ship will provide it's id and data to the server and the server will broadcast the ship's data to all other ships
+    socket.on('update', (data) => {
+        console.log('update event', data);
+        const Ship = {
+            id: socket.id,
+            data: data
+        }
+        Ships.forEach((ship) => {
+            if (ship.id === Ship.id) {
+                ship.data = Ship.data;
+            }
+        });
+        socket.broadcast.emit('update', Ship);
+    });
+
 });
 
 

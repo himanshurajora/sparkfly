@@ -43,7 +43,7 @@ export class BulletsGroup extends Phaser.Physics.Arcade.Group {
         console.log(this)
     }
 
-    fireBullets(ship: Phaser.Types.Physics.Arcade.ImageWithDynamicBody) {
+    fireBullets(ship: Phaser.Physics.Arcade.Sprite) {
         if (this.scene.time.now > this.bulletTime) {
             const bullet = this.getFirstDead(true)
             if (bullet) {

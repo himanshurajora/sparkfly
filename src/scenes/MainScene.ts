@@ -2,20 +2,14 @@ import Phaser from "phaser";
 import { BulletsGroup } from "~/Objects/BulletsGroup";
 import { EnemyShip, EnemyShipData } from "~/Objects/EnemyShip";
 import { io, Socket } from "socket.io-client";
+import { PlayerShip } from "~/Objects/Ship";
 
 export default class MainScene extends Phaser.Scene {
     private cursors !: Phaser.Types.Input.Keyboard.CursorKeys
-    private ship !: Phaser.Types.Physics.Arcade.ImageWithDynamicBody
+    private ship !: Phaser.Physics.Arcade.Sprite
     private bullets !: BulletsGroup
     private speedText !: Phaser.GameObjects.Text
-    private enemyShip: EnemyShip | null = null
-    private enemyShipData: EnemyShipData = {
-        x: 0,
-        y: 0,
-        health: 100,
-        rotation: 0,
-        bullets: []
-    }
+    private enemyShips: EnemyShip[] = []
     private rotationSpeed = 200
     private socket !: Socket
     private health = 100
@@ -31,8 +25,6 @@ export default class MainScene extends Phaser.Scene {
         this.load.image("ship-idle", 'assets/ship_idle.png')
         // create socket
         this.socket = io("http://localhost:5000")
-        // send hello message
-        this.socket.emit("hello", "Hello from Users")
     }
 
     create() {
@@ -48,35 +40,26 @@ export default class MainScene extends Phaser.Scene {
         this.cursors = this.input.keyboard.createCursorKeys()
         var x = Math.floor(Math.random() * (this.game.canvas.width - 50))
         var y = Math.floor(Math.random() * (this.game.canvas.height - 50))
-        
-        this.ship = this.physics.add.image(x, y, 'ship')
-        // ship drag to reduce speed
-        this.ship.setDrag(100)
-        // MAX speed
-        this.ship.setMaxVelocity(200)
 
-        // Handling Enemy Ship
+        this.ship = new PlayerShip(this, x, y)
         // get my socket id
         this.socket.on("id", (data) => {
-            this.mySocketId = data.id
-            data.users.forEach(user => {
-                if (user.id !== this.mySocketId) {
-                    this.enemyShip = new EnemyShip(this, { x: 100, y: 100, health: 100, rotation: 0, bullets: [] })
-                }
-            })
 
         })
 
+        // on new enemy ship
         this.socket.on("newConnection", (data) => {
-            if (data.id !== this.mySocketId) {
-                this.enemyShip = new EnemyShip(this, { x: 100, y: 100, health: 100, rotation: 0, bullets: [] })
-            }
+        
         })
 
+        // on enemy ship move
         this.socket.on("move", (data) => {
-            if (data.id !== this.mySocketId) {
-                this.enemyShipData = data.data
-            }
+            
+        })
+
+        // on enemy ship disconnected
+        this.socket.on("disconnected", (data) => {
+            console.log(data, "someone disconnected")
         })
 
         // velocity text
@@ -87,28 +70,6 @@ export default class MainScene extends Phaser.Scene {
 
         // create bullets group
         this.bullets = new BulletsGroup(this)
-        // make ship collide with enemy ship
-        // this.physics.add.collider(this.ship, this.enemyShip, () => {
-        //     console.log("Collision");
-        //     if (this.enemyShip) {
-        //         this.enemyShip.health -= 20;
-        //         if (this.enemyShip.health <= 0) {
-        //             this.enemyShip.destroy();
-        //         }
-        //     }
-        // })
-
-        // this.physics.add.overlap(this.enemyShip, this.bullets, (enemyShip, bullet) => {
-        //     console.log("Bullets Passthrough")
-        //     bullet.destroy()
-        //     console.log(this.enemyShip.health)
-        //     if (this.enemyShip) {
-        //         this.enemyShip.health -= 20;
-        //         if (this.enemyShip.health <= 0) {
-        //             this.enemyShip.destroy();
-        //         }
-        //     }
-        // })
     }
 
     fireBullets() {
@@ -117,17 +78,12 @@ export default class MainScene extends Phaser.Scene {
 
     update(time: number, delta: number): void {
 
-        // Enemy Ship Handling
-        if (this.enemyShip && this.enemyShip.body) {
-            this.enemyShip.setPosition(this.enemyShipData.x, this.enemyShipData.y)
-            this.enemyShip.setRotation(this.enemyShipData.rotation)
-        }
-
         // Ship Movement Control Section
         if (this.cursors.up.isDown) {
             // set ship-idle image to ship
             this.ship.setTexture('ship')
-            this.physics.velocityFromRotation(this.ship.rotation, 300, this.ship.body.acceleration)
+            // It's phaser's error that this.ship.body.acceleration is not a property so I used any to get around it
+            this.physics.velocityFromRotation(this.ship.rotation, 300, (this.ship.body as any).acceleration)
         }
         else {
             this.ship.setTexture('ship-idle')
@@ -158,11 +114,9 @@ export default class MainScene extends Phaser.Scene {
             x: this.ship.x,
             y: this.ship.y,
             rotation: this.ship.rotation,
-            health: this.health
+            health: this.health,
+            id: this.mySocketId,
+            // bullets: this.bullets.getChildren()
         })
     }
-
-
-
-
 }

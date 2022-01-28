@@ -23,7 +23,8 @@
 		],
 		"types": [
 			"phaser"
-		]
+		],
+		"suppressExcessPropertyErrors": true
 	},
 	"include": [
 		"src/**/*"
