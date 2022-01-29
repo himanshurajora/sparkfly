@@ -1,10 +1,19 @@
 import Phaser from "phaser"
+import { Socket } from "socket.io-client"
+
+export declare interface IBulletData {
+    x: number
+    y: number
+    rotation: number
+    velocity: Phaser.Math.Vector2
+}
+
 class Bullet extends Phaser.Physics.Arcade.Sprite {
     constructor(scene: Phaser.Scene, x: number, y: number) {
         super(scene, x, y, 'bullet')
     }
 
-    fire(ship: Phaser.Types.Physics.Arcade.ImageWithDynamicBody) {
+    fire(ship: Phaser.Types.Physics.Arcade.ImageWithDynamicBody, socket: Socket) {
         this.body.reset(ship.x, ship.y)
         // set angle of bullet
         this.rotation = ship.rotation
@@ -16,8 +25,15 @@ class Bullet extends Phaser.Physics.Arcade.Sprite {
 
         this.setActive(true)
         this.setVisible(true)
+        // send bullet to server
+        socket.emit("bullet", {
+            x: this.x,
+            y: this.y,
+            rotation: this.rotation,
+            velocity: this.body.velocity
+        })
 
-        // kill bullet after 2 seconds
+        // kill bullet after 1 seconds
         this.scene.time.delayedCall(1000, () => {
             this.setActive(false)
             this.setVisible(false)
@@ -41,13 +57,55 @@ export class BulletsGroup extends Phaser.Physics.Arcade.Group {
         })
     }
 
-    fireBullets(ship: Phaser.Physics.Arcade.Sprite) {
+    fireBullets(ship: Phaser.Physics.Arcade.Sprite, socket: Socket) {
         if (this.scene.time.now > this.bulletTime) {
             const bullet = this.getFirstDead(true)
             if (bullet) {
-                bullet.fire(ship)
+                bullet.fire(ship, socket)
             }
             this.bulletTime = this.scene.time.now + 300
         }
     }
-}   
+}
+
+export class EnemyBulletGroup extends Phaser.Physics.Arcade.Group {
+    constructor(scene: Phaser.Scene) {
+        super(scene.physics.world, scene)
+
+        this.createMultiple({
+            classType: EnemyBullet,
+            frameQuantity: 1,
+            active: false,
+            visible: false,
+            key: 'bullet',
+            max: 10
+        })
+    }
+
+    public fireBullet(scene: Phaser.Scene, bulletData: IBulletData) {
+        const bullet = this.getFirstDead(true)
+        if (bullet) {
+            bullet.fire(scene, bulletData)
+        }
+    }
+}
+
+export class EnemyBullet extends Phaser.Physics.Arcade.Sprite {
+    constructor(scene: Phaser.Scene, data: IBulletData) {
+        super(scene, data.x, data.y, 'bullet')
+    }
+
+    public fire(scene: Phaser.Scene, bulletData: IBulletData) {
+        this.body.reset(bulletData.x, bulletData.y)
+        this.rotation = bulletData.rotation
+        this.setVelocity(bulletData.velocity.x, bulletData.velocity.y)
+        this.setActive(true)
+        this.setVisible(true)
+        scene.time.delayedCall(1000, () => {
+            this.setActive(false)
+            this.setVisible(false)
+        }, [], this)
+
+    }
+}
+

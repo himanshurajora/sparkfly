@@ -1,6 +1,6 @@
 import Phaser from "phaser";
-import { BulletsGroup } from "~/Objects/BulletsGroup";
-import { EnemyShip, EnemyShipData } from "~/Objects/EnemyShip";
+import { BulletsGroup, EnemyBullet, EnemyBulletGroup, IBulletData } from "~/Objects/BulletsGroup";
+import { EnemyBulletData, EnemyShip, EnemyShipData } from "~/Objects/EnemyShip";
 import { io, Socket } from "socket.io-client";
 import { PlayerShip } from "~/Objects/Ship";
 
@@ -10,6 +10,7 @@ export default class MainScene extends Phaser.Scene {
     private bullets !: BulletsGroup
     private speedText !: Phaser.GameObjects.Text
     private enemyShips: EnemyShip[] = []
+    private enemyBullets !: EnemyBulletGroup
     private rotationSpeed = 200
     private socket !: Socket
     private health = 100
@@ -59,17 +60,16 @@ export default class MainScene extends Phaser.Scene {
                 console.log(ship)
                 if (ship.id !== id) {
                     this.enemyShips.push(new EnemyShip(this, ship))
-                    // set collision between Ship and EnemyShip
-                    this.physics.add.collider(this.ship, this.enemyShips[this.enemyShips.length - 1])
                 }
             })
         })
 
+        // add collision detection
+        this.physics.add.collider(this.ship, this.enemyShips)
+
         // on new enemy ship
         this.socket.on("enter", (Ship: EnemyShipData) => {
             this.enemyShips.push(new EnemyShip(this, Ship))
-            // set collision between Ship and EnemyShip
-            this.physics.add.collider(this.ship, this.enemyShips[this.enemyShips.length - 1])
         })
 
         // on enemy ship move
@@ -99,12 +99,41 @@ export default class MainScene extends Phaser.Scene {
             fontStyle: 'bold',
         })
 
+
+        /**
+         * Bullet Management Below
+         * - My Bullets
+         * - Enemy Bullets
+         * - Collision
+         * - Hit, etc
+         */
+
         // create bullets group
         this.bullets = new BulletsGroup(this)
+
+        this.enemyBullets = new EnemyBulletGroup(this)
+
+        // set overlap for enemy bullets
+        this.physics.add.overlap(this.ship, this.enemyBullets, (ship, bullet) => {
+            this.health -= 10
+            console.log(this.health)
+            bullet.destroy()
+        })
+
+        // set overlap for my bullets
+        this.physics.add.overlap(this.enemyShips, this.bullets, (ship, bullet) => {
+            // simple case to remove bullet when it hits enemy ship
+            bullet.destroy()
+        })
+        // on new bullet from server on event bullet
+        this.socket.on("bullet", (bullet: IBulletData) => {
+            // add bullet to enemy bullets group    
+            this.enemyBullets.fireBullet(this, bullet)
+        })
     }
 
     fireBullets() {
-        this.bullets.fireBullets(this.ship)
+        this.bullets.fireBullets(this.ship, this.socket)
     }
 
     update(time: number, delta: number): void {
@@ -138,7 +167,7 @@ export default class MainScene extends Phaser.Scene {
 
         this.physics.world.wrap(this.ship, 5)
         // update spped text
-        this.speedText.setText(`Speed: ${this.ship.body.velocity.length()}`)
+        this.speedText.setText(`Speed: ${this.ship.body.velocity.length().toFixed()}`)
 
         // send ship data 
         this.socket.emit("move", {

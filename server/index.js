@@ -69,6 +69,12 @@ io.on('connection', (socket) => {
         console.log('Ships', socket.id)
         socket.broadcast.emit('left', socket.id);
     });
+
+
+    // Bullet Machanism 
+    socket.on('bullet', (data) => {
+        socket.broadcast.emit('bullet', data);
+    })
 });
 
 
