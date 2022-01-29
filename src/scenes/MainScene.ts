@@ -42,24 +42,55 @@ export default class MainScene extends Phaser.Scene {
         var y = Math.floor(Math.random() * (this.game.canvas.height - 50))
 
         this.ship = new PlayerShip(this, x, y)
-        // get my socket id
-        this.socket.on("id", (data) => {
+        // trigger enter event on socket
+        this.socket.emit("enter", {
+            x: x,
+            y: y,
+            rotation: 0,
+            health: 100
+        })
 
+        // get my socket id
+        this.socket.on("id", ({ id, ships }) => {
+            this.mySocketId = id
+            // create enemy ships
+            ships.forEach(ship => {
+                // add only if it's not my ship
+                console.log(ship)
+                if (ship.id !== id) {
+                    this.enemyShips.push(new EnemyShip(this, ship))
+                    // set collision between Ship and EnemyShip
+                    this.physics.add.collider(this.ship, this.enemyShips[this.enemyShips.length - 1])
+                }
+            })
         })
 
         // on new enemy ship
-        this.socket.on("newConnection", (data) => {
-        
+        this.socket.on("enter", (Ship: EnemyShipData) => {
+            this.enemyShips.push(new EnemyShip(this, Ship))
+            // set collision between Ship and EnemyShip
+            this.physics.add.collider(this.ship, this.enemyShips[this.enemyShips.length - 1])
         })
 
         // on enemy ship move
-        this.socket.on("move", (data) => {
-            
+        this.socket.on("move", (Ship: EnemyShipData) => {
+            // update enemy ship
+            this.enemyShips.forEach(ship => {
+                if (ship.id === Ship.id) {
+                    ship.updateShip(Ship)
+                }
+            })
         })
 
-        // on enemy ship disconnected
-        this.socket.on("disconnected", (data) => {
-            console.log(data, "someone disconnected")
+        // on enemy ship left the game
+        this.socket.on('left', (id) => {
+            // clear all enemy ships
+            this.enemyShips.forEach(ship => {
+                ship.visible = false
+            })
+            // remove enemy ship from array
+            this.enemyShips = this.enemyShips.filter(ship => ship.id !== id)
+            console.log(this.enemyShips)
         })
 
         // velocity text
@@ -111,12 +142,18 @@ export default class MainScene extends Phaser.Scene {
 
         // send ship data 
         this.socket.emit("move", {
-            x: this.ship.x,
-            y: this.ship.y,
-            rotation: this.ship.rotation,
-            health: this.health,
             id: this.mySocketId,
-            // bullets: this.bullets.getChildren()
+            data: {
+                x: this.ship.x,
+                y: this.ship.y,
+                rotation: this.ship.rotation,
+                health: this.health
+            }
         })
+
+        // show the id of enemy ships just below the ship
+        // this.enemyShips.forEach(ship => {
+        //     this.add.text(ship.x, ship.y- 20, ship.id)
+        // })
     }
 }

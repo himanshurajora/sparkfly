@@ -31,25 +31,44 @@ io.on('connection', (socket) => {
             data: data
         }
         Ships.push(Ship);
-        socket.emit('enter', Ship);
+        console.log('Ships', Ships);
+        socket.emit('id', {
+            id: socket.id,
+            ships: Ships
+        });
+        // broadcast the new ship to all other ships
+        socket.broadcast.emit('enter', Ship);
     });
 
     // socket update event to handle the ship update
     // ship will provide it's id and data to the server and the server will broadcast the ship's data to all other ships
-    socket.on('update', (data) => {
-        console.log('update event', data);
-        const Ship = {
-            id: socket.id,
-            data: data
-        }
+    socket.on('move', (__Ship) => {
+        const Ship = __Ship
         Ships.forEach((ship) => {
             if (ship.id === Ship.id) {
                 ship.data = Ship.data;
             }
         });
-        socket.broadcast.emit('update', Ship);
+        socket.broadcast.emit('move', Ship);
     });
 
+
+    // handle the ship leave event
+    // ship will provide it's id to the server and the server will broadcast that the ship left the game
+    // THis is gonna be a disconnect event
+    socket.on('disconnect', () => {
+        console.log('user disconnected');
+        // remove the ship from the ships array using the socket id
+        Ships.forEach((ship, index) => {
+            if (ship.id === socket.id) {
+                Ships.splice(index, 1);
+            }
+        });
+
+        // broadcast the ship left to all other ships
+        console.log('Ships', socket.id)
+        socket.broadcast.emit('left', socket.id);
+    });
 });
 
 

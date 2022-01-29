@@ -39,8 +39,6 @@ export class BulletsGroup extends Phaser.Physics.Arcade.Group {
             key: 'bullet',
             max: 10
         })
-
-        console.log(this)
     }
 
     fireBullets(ship: Phaser.Physics.Arcade.Sprite) {
