@@ -17,3 +17,16 @@ For Gamers by Gamers
 
 VCF Loves You
 See Ya! 
+
+
+Logs: 
+
+- 24 Jan 2021: Started making the game, Simple Ship Motion
+- 26 Jan 2021: Bullet Machanism
+- 27 Jan 2021: Socket integration - Starting of Server Side Code, Live Positioning
+- 28 Jan 2021: Nothing Much, But Changed The Strcutre of the code and Implemented the new Style to make it more manageable.
+- 29 Jan 2021: More Than 2 Ships, Live Bullets Firing, Collision Detection, and Health Reduction - Ready To Be Deployed on The Real Server And Actually Deployed on Glitch
+
+Right Now, The Project is live on : https://ggsparkflygame.web.app/ , It's playable but it's laggy because glitch is free and it's not a perfect server for a multiplayer game. I will try to figure out the server problems soon, for now I consider my first multiplayer game to be done. In Future I'll be making more games.
+
+

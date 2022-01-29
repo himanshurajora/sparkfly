@@ -24,8 +24,12 @@ export default class MainScene extends Phaser.Scene {
         this.load.image("ship", 'assets/ship.png')
         this.load.image("bullet", 'assets/bullet.png')
         this.load.image("ship-idle", 'assets/ship_idle.png')
+
+        // let localhost = "https://localhost:3000"
+        let glitch = "https://empty-button-eater.glitch.me/"
+        let host = glitch
         // create socket
-        this.socket = io("http://localhost:5000")
+        this.socket = io(host)
     }
 
     create() {
