@@ -6,6 +6,7 @@ export declare interface IBulletData {
     y: number
     rotation: number
     velocity: Phaser.Math.Vector2
+    shipId : string
 }
 
 class Bullet extends Phaser.Physics.Arcade.Sprite {
@@ -13,7 +14,7 @@ class Bullet extends Phaser.Physics.Arcade.Sprite {
         super(scene, x, y, 'bullet')
     }
 
-    fire(ship: Phaser.Types.Physics.Arcade.ImageWithDynamicBody, socket: Socket) {
+    fire(ship: Phaser.Types.Physics.Arcade.ImageWithDynamicBody, socket: Socket, shipId: string) {
         this.body.reset(ship.x, ship.y)
         // set angle of bullet
         this.rotation = ship.rotation
@@ -30,7 +31,8 @@ class Bullet extends Phaser.Physics.Arcade.Sprite {
             x: this.x,
             y: this.y,
             rotation: this.rotation,
-            velocity: this.body.velocity
+            velocity: this.body.velocity,
+            shipId: shipId
         })
 
         // kill bullet after 1 seconds
@@ -57,11 +59,11 @@ export class BulletsGroup extends Phaser.Physics.Arcade.Group {
         })
     }
 
-    fireBullets(ship: Phaser.Physics.Arcade.Sprite, socket: Socket) {
+    fireBullets(ship: Phaser.Physics.Arcade.Sprite, socket: Socket, shipId: string) {
         if (this.scene.time.now > this.bulletTime) {
             const bullet = this.getFirstDead(true)
             if (bullet) {
-                bullet.fire(ship, socket)
+                bullet.fire(ship, socket, shipId)
             }
             this.bulletTime = this.scene.time.now + 300
         }
@@ -91,11 +93,14 @@ export class EnemyBulletGroup extends Phaser.Physics.Arcade.Group {
 }
 
 export class EnemyBullet extends Phaser.Physics.Arcade.Sprite {
+    public shipId = ""
     constructor(scene: Phaser.Scene, data: IBulletData) {
         super(scene, data.x, data.y, 'bullet')
     }
 
     public fire(scene: Phaser.Scene, bulletData: IBulletData) {
+        // set shipId
+        this.shipId = bulletData.shipId
         this.body.reset(bulletData.x, bulletData.y)
         this.rotation = bulletData.rotation
         this.setVelocity(bulletData.velocity.x, bulletData.velocity.y)

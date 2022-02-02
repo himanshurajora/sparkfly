@@ -9,12 +9,15 @@ export default class MainScene extends Phaser.Scene {
     private ship !: Phaser.Physics.Arcade.Sprite
     private bullets !: BulletsGroup
     private speedText !: Phaser.GameObjects.Text
+    private healthText !: Phaser.GameObjects.Text
+    private scoreText !: Phaser.GameObjects.Text
     private enemyShips: EnemyShip[] = []
     private enemyBullets !: EnemyBulletGroup
     private rotationSpeed = 200
     private socket !: Socket
     private health = 100
     private mySocketId !: string
+    private score = 0
     constructor() {
         super("test-scene")
     }
@@ -24,10 +27,11 @@ export default class MainScene extends Phaser.Scene {
         this.load.image("ship", 'assets/ship.png')
         this.load.image("bullet", 'assets/bullet.png')
         this.load.image("ship-idle", 'assets/ship_idle.png')
+        this.load.image("ship-enemy", 'assets/ship_enemy.png')
 
-        // let localhost = "https://localhost:3000"
-        let glitch = "https://empty-button-eater.glitch.me/"
-        let host = glitch
+        let localhost = "http://localhost:5000"
+        // let glitch = "https://empty-button-eater.glitch.me/"
+        let host = localhost
         // create socket
         this.socket = io(host)
     }
@@ -69,7 +73,7 @@ export default class MainScene extends Phaser.Scene {
         })
 
         // add collision detection
-        this.physics.add.collider(this.ship, this.enemyShips)
+        // this.physics.add.collider(this.ship, this.enemyShips)
 
         // on new enemy ship
         this.socket.on("enter", (Ship: EnemyShipData) => {
@@ -88,19 +92,13 @@ export default class MainScene extends Phaser.Scene {
 
         // on enemy ship left the game
         this.socket.on('left', (id) => {
-            // clear all enemy ships
-            this.enemyShips.forEach(ship => {
-                ship.visible = false
+            // clear enemy ship where id is equal to id
+            this.enemyShips.forEach((ship, index) => {
+                if (ship.id === id) {
+                    ship.visible = false
+                    this.enemyShips.splice(index, 1)
+                }
             })
-            // remove enemy ship from array
-            this.enemyShips = this.enemyShips.filter(ship => ship.id !== id)
-            console.log(this.enemyShips)
-        })
-
-        // velocity text
-        this.speedText = this.add.text(16, 16, '', {
-            fontSize: '32px',
-            fontStyle: 'bold',
         })
 
 
@@ -120,13 +118,13 @@ export default class MainScene extends Phaser.Scene {
         // set overlap for enemy bullets
         this.physics.add.overlap(this.ship, this.enemyBullets, (ship, bullet) => {
             this.health -= 10
-            console.log(this.health)
             bullet.destroy()
         })
 
         // set overlap for my bullets
         this.physics.add.overlap(this.enemyShips, this.bullets, (ship, bullet) => {
             // simple case to remove bullet when it hits enemy ship
+            this.score += 10
             bullet.destroy()
         })
         // on new bullet from server on event bullet
@@ -134,10 +132,30 @@ export default class MainScene extends Phaser.Scene {
             // add bullet to enemy bullets group    
             this.enemyBullets.fireBullet(this, bullet)
         })
+
+        // Data to display
+
+        // velocity text
+        this.speedText = this.add.text(16, 16, '', {
+            fontSize: '32px',
+            fontStyle: 'bold',
+        })
+
+        this.healthText = this.add.text(this.game.canvas.width - 150, 16, `Health: ${this.health}`, {
+            fontSize: '15px',
+            fontStyle: 'bold',
+        })
+
+        this.scoreText = this.add.text(this.game.canvas.width - 150, 30, `Score: ${this.score}`, {
+            fontSize: '15px',
+            fontStyle: 'bold',
+        })
+
+
     }
 
     fireBullets() {
-        this.bullets.fireBullets(this.ship, this.socket)
+        this.bullets.fireBullets(this.ship, this.socket, this.mySocketId)
     }
 
     update(time: number, delta: number): void {
@@ -188,5 +206,9 @@ export default class MainScene extends Phaser.Scene {
         // this.enemyShips.forEach(ship => {
         //     this.add.text(ship.x, ship.y- 20, ship.id)
         // })
+
+        // show health and score
+        this.healthText.setText(`Health: ${this.health}`)
+        this.scoreText.setText(`Score: ${this.score}`)
     }
 }

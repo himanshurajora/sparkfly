@@ -21,7 +21,7 @@ export class EnemyShip extends Phaser.Physics.Arcade.Sprite {
     public health: number = 100
     public id!: string
     constructor(scene: Phaser.Scene, enemyShip: EnemyShipData) {
-        super(scene, enemyShip.data.x, enemyShip.data.y, 'ship')
+        super(scene, enemyShip.data.x, enemyShip.data.y, 'ship-enemy')
         scene.add.existing(this)
         scene.physics.add.existing(this)
         this.id = enemyShip.id
